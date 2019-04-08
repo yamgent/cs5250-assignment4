@@ -1,0 +1,2 @@
+To be completed, scheduling SJF without using information from process.burst_time.
+Average waiting time 0.00 

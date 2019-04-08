@@ -1,0 +1,2 @@
+To be completed, scheduling process_list on SRTF, using process.burst_time to calculate the remaining time of the current process.
+Average waiting time 0.00 

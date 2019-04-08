@@ -1,90 +1,147 @@
-'''
-CS5250 Assignment 4, Scheduling policies simulator
-Sample skeleton program
-Input file:
-    input.txt
-Output files:
-    FCFS.txt
-    RR.txt
-    SRTF.txt
-    SJF.txt
-'''
 import sys
 
-input_file = 'input.txt'
-
 class Process:
-    last_scheduled_time = 0
-    def __init__(self, id, arrive_time, burst_time):
+    '''
+    A process as defined in the input text file.
+    '''
+
+    def __init__(self, id, arrival_time, burst_time):
         self.id = id
-        self.arrive_time = arrive_time
+        self.arrival_time = arrival_time
         self.burst_time = burst_time
-    #for printing purpose
+
     def __repr__(self):
-        return ('[id %d : arrival_time %d,  burst_time %d]'%(self.id, self.arrive_time, self.burst_time))
+        '''
+        For printing purposes.
+        '''
+
+        return '[id %d: arrival_time %d, burst_time %d]' % (self.id, self.arrival_time, self.burst_time)
 
 def FCFS_scheduling(process_list):
-    #store the (switching time, proccess_id) pair
+    '''
+    Scheduling process_list on first come first serve basis.
+    '''
+
+    # store the (switching time, proccess_id) pair
     schedule = []
     current_time = 0
     waiting_time = 0
-    for process in process_list:
-        if(current_time < process.arrive_time):
-            current_time = process.arrive_time
-        schedule.append((current_time,process.id))
-        waiting_time = waiting_time + (current_time - process.arrive_time)
+
+    for process in process_list:        
+        if current_time < process.arrival_time:
+            current_time = process.arrival_time
+
+        schedule.append((current_time, process.id))
+        waiting_time = waiting_time + (current_time - process.arrival_time)
         current_time = current_time + process.burst_time
+
     average_waiting_time = waiting_time/float(len(process_list))
     return schedule, average_waiting_time
 
-#Input: process_list, time_quantum (Positive Integer)
-#Output_1 : Schedule list contains pairs of (time_stamp, proccess_id) indicating the time switching to that proccess_id
-#Output_2 : Average Waiting Time
-def RR_scheduling(process_list, time_quantum ):
-    return (["to be completed, scheduling process_list on round robin policy with time_quantum"], 0.0)
+
+# input: process_list, time_quantum (Positive Integer)
+# output_1: Schedule list contains pairs of (time_stamp, proccess_id) indicating the time switching to that proccess_id
+# output_2: Average Waiting Time
+def RR_scheduling(process_list, time_quantum):
+    '''
+    Scheduling process_list on round robin policy with time_quantum.
+    '''
+
+    return (['To be completed, scheduling process_list on round robin policy with time_quantum.'], 0.0)
+
 
 def SRTF_scheduling(process_list):
-    return (["to be completed, scheduling process_list on SRTF, using process.burst_time to calculate the remaining time of the current process "], 0.0)
+    '''
+    Scheduling process_list on SRTF, using process.burst_time to calculate the remaining time of the current process.
+    '''
+
+    return (['To be completed, scheduling process_list on SRTF, using process.burst_time to calculate the remaining time of the current process.'], 0.0)
+
 
 def SJF_scheduling(process_list, alpha):
-    return (["to be completed, scheduling SJF without using information from process.burst_time"],0.0)
+    '''
+    Scheduling SJF without using information from process.burst_time.
+    '''
+
+    return (['To be completed, scheduling SJF without using information from process.burst_time.'], 0.0)
 
 
-def read_input():
+def read_input(input_txt_path):
+    '''
+    Read each process listed in the input.txt and returns
+    a list of corresponding Process.
+    '''
+
     result = []
-    with open(input_file) as f:
+
+    with open(input_txt_path, 'r') as f:
         for line in f:
-            array = line.split()
-            if (len(array)!= 3):
-                print ("wrong input format")
+            line_vals = [int(x) for x in line.split()]
+
+            if len(line_vals) != 3:
+                print('Invalid format! Expected 3 numbers in a line.')
                 exit()
-            result.append(Process(int(array[0]),int(array[1]),int(array[2])))
+
+            result.append(Process(line_vals[0], line_vals[1], line_vals[2]))
+
     return result
-def write_output(file_name, schedule, avg_waiting_time):
-    with open(file_name,'w') as f:
+
+
+def write_output(output_txt_path, schedule, avg_waiting_time):
+    '''
+    Write the result of a particular simulation.
+    '''
+
+    with open(output_txt_path, 'w') as f:
         for item in schedule:
             f.write(str(item) + '\n')
-        f.write('average waiting time %.2f \n'%(avg_waiting_time))
+        f.write('Average waiting time %.2f \n'%(avg_waiting_time))
+
+
+def run_simulators(folder_path):
+    '''
+    Read the list of processes and run each simulation.
+    '''
+
+    input_txt_path = folder_path + '/input.txt'
+    process_list = read_input(input_txt_path)
+
+    print('printing input ----')
+    for process in process_list:
+        print(process)
+
+    print('simulating FCFS ----')
+    FCFS_schedule, FCFS_avg_waiting_time = FCFS_scheduling(process_list)
+    write_output(folder_path + '/FCFS.txt', FCFS_schedule, FCFS_avg_waiting_time)
+
+    print('simulating RR ----')
+    RR_schedule, RR_avg_waiting_time = RR_scheduling(process_list, time_quantum = 2)
+    write_output(folder_path + '/RR.txt', RR_schedule, RR_avg_waiting_time)
+
+    print('simulating SRTF ----')
+    SRTF_schedule, SRTF_avg_waiting_time = SRTF_scheduling(process_list)
+    write_output(folder_path + '/SRTF.txt', SRTF_schedule, SRTF_avg_waiting_time)
+
+    print ('simulating SJF ----')
+    SJF_schedule, SJF_avg_waiting_time = SJF_scheduling(process_list, alpha = 0.5)
+    write_output(folder_path + '/SJF.txt', SJF_schedule, SJF_avg_waiting_time)
 
 
 def main(argv):
-    process_list = read_input()
-    print ("printing input ----")
-    for process in process_list:
-        print (process)
-    print ("simulating FCFS ----")
-    FCFS_schedule, FCFS_avg_waiting_time =  FCFS_scheduling(process_list)
-    write_output('FCFS.txt', FCFS_schedule, FCFS_avg_waiting_time )
-    print ("simulating RR ----")
-    RR_schedule, RR_avg_waiting_time =  RR_scheduling(process_list,time_quantum = 2)
-    write_output('RR.txt', RR_schedule, RR_avg_waiting_time )
-    print ("simulating SRTF ----")
-    SRTF_schedule, SRTF_avg_waiting_time =  SRTF_scheduling(process_list)
-    write_output('SRTF.txt', SRTF_schedule, SRTF_avg_waiting_time )
-    print ("simulating SJF ----")
-    SJF_schedule, SJF_avg_waiting_time =  SJF_scheduling(process_list, alpha = 0.5)
-    write_output('SJF.txt', SJF_schedule, SJF_avg_waiting_time )
+    '''
+    Main entry point of the application.
+    '''
+
+    process_name = argv[0]
+
+    if len(argv) < 2:
+        print('Please pass in the path of the folder containing input.txt.')
+        print('Usage: python %s [path_to_folder]' % (process_name))
+        exit()
+    
+    folder_path = argv[1]
+    run_simulators(argv[1])
+
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
-
+    main(sys.argv)
