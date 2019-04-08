@@ -1,14 +1,20 @@
 import sys
 
+NO_JOB = -1
+
 class Process:
     '''
     A process as defined in the input text file.
     '''
 
     def __init__(self, id, arrival_time, burst_time):
+        assert arrival_time >= 0
+        assert burst_time >= 0
+
         self.id = id
         self.arrival_time = arrival_time
         self.burst_time = burst_time
+
 
     def __repr__(self):
         '''
@@ -17,26 +23,251 @@ class Process:
 
         return '[id %d: arrival_time %d, burst_time %d]' % (self.id, self.arrival_time, self.burst_time)
 
+
+    def spawn_job(self, current_time):
+        '''
+        Create a new job associated with this process.
+        '''
+        
+        assert current_time >= self.arrival_time
+        return Job(self.id, self.arrival_time, self.burst_time, current_time - self.arrival_time)
+
+
+class Job:
+    '''
+    Describes a job scheduled for the CPU.
+    '''
+
+    def __init__(self, id, arrival_time, remaining_time, waiting_time):
+        assert arrival_time >= 0
+        assert remaining_time >= 0
+        assert waiting_time >= 0
+
+        self.id = id
+        self.arrival_time = arrival_time
+        self.remaining_time = remaining_time
+        self.waiting_time = waiting_time
+
+    
+    def add_waiting_time(self, waiting_duration):
+        '''
+        Called when this job is NOT the current active one, add the waiting
+        time by the waiting duration.
+        '''
+        
+        assert waiting_duration >= 0
+        self.waiting_time += waiting_duration
+
+
+    def substract_remaining_time(self, processing_duration):
+        '''
+        Called when this job is the current active one, substract the 
+        remaining time by the processing duration.
+        '''
+
+        assert processing_duration >= 0
+        self.remaining_time -= min(processing_duration, self.remaining_time)
+
+    
+    def is_done(self):
+        '''
+        Is the job completed?
+        '''
+
+        return self.remaining_time <= 0
+
+
+class JobReceiver:
+    '''
+    When probed, returns the new list of jobs that have arrived at the
+    particular current time.
+
+    Note: process_list must be in order of arrival time!
+    '''
+
+    def __init__(self, process_list):
+        assert process_list is not None
+
+        self.process_list = process_list
+        self.next_new_job_index = 0
+
+    
+    def all_jobs_received(self):
+        '''
+        Are there no more jobs in the queue?
+        '''
+
+        return self.next_new_job_index >= len(self.process_list)
+
+
+    def peek_next_process(self):
+        '''
+        Peek at the next process in the queue (Note: it may not
+        have arrived yet! Need to check arrival_time <= current_time).
+        '''
+
+        if self.all_jobs_received():
+            return None
+
+        return self.process_list[self.next_new_job_index]
+
+
+    def receive_new_jobs(self, current_time):
+        '''
+        Returns the list of new jobs at the current time.
+        '''
+
+        result = []
+
+        if self.all_jobs_received():
+            # no more jobs
+            return result
+        
+        while (not self.all_jobs_received()) and self.peek_next_process().arrival_time <= current_time:
+            # a new job has arrived
+            result.append(self.peek_next_process().spawn_job(current_time))
+            self.next_new_job_index += 1
+
+        return result
+
+
+class Cpu:
+    '''
+    Maintains the state of a simulated CPU.
+    '''
+
+    def __init__(self, process_list):
+        self.current_time = 0
+        self.remaining_jobs = []
+        self.completed_jobs = []
+        self.current_running_job_index = NO_JOB
+        self.job_receiver = JobReceiver(process_list)
+        self.schedule = []
+
+
+    def get_current_running_job(self):
+        '''
+        Get the current job.
+        '''
+
+        if self.current_running_job_index == NO_JOB:
+            return None
+        return self.remaining_jobs[self.current_running_job_index]
+
+
+    def switch_to_job(self, new_job):
+        '''
+        Switch to the new job.
+        '''
+
+        self.current_running_job_index = new_job
+        if self.current_running_job_index != NO_JOB:
+            self.schedule.append((self.current_time, self.get_current_running_job().id))
+
+    
+    def wait_until_new_job_arrives(self):
+        '''
+        Called when there's no job in the CPU, wait until
+        the new job arrives from JobReceiver.
+        '''
+
+        assert len(self.remaining_jobs) == 0
+        assert not self.job_receiver.all_jobs_received()
+
+        next_arrival_time = self.job_receiver.peek_next_process().arrival_time
+        self.move_current_time_to(next_arrival_time)
+
+
+    def increment_current_time(self, duration):
+        '''
+        Increment current time by given amount.
+        '''
+        self.move_current_time_to(self.current_time + duration)
+
+
+    def move_current_time_to(self, new_time):
+        '''
+        Move the current time forward to new_time.
+
+        What happens when time is moved forward?
+            1. update all waiting job's waiting time
+            2. update the current running job's remaining time
+            3. put the current running job to the completed queue if it is done
+            4. receive new jobs (if any)
+            5. update current_time to be the new_time
+        '''
+        assert self.current_time <= new_time
+
+        delta = new_time - self.current_time
+        current_running_job = self.get_current_running_job()
+
+        # 1. update all waiting job's waiting time
+        for job in self.remaining_jobs:
+            if job == current_running_job:
+                continue
+            job.add_waiting_time(delta)
+
+        # 2. update the current running job's remaining time
+        if current_running_job is not None:
+            current_running_job.substract_remaining_time(delta)
+            
+            # 3. put the current running job to the completed queue if it is done
+            if current_running_job.is_done():
+                self.remaining_jobs.remove(current_running_job)
+                self.completed_jobs.append(current_running_job)
+
+                self.switch_to_job(NO_JOB)
+                current_running_job = None
+
+        # 4. receive new jobs (if any)
+        new_jobs = self.job_receiver.receive_new_jobs(new_time)
+        for j in new_jobs:
+            self.remaining_jobs.append(j)
+
+        # 5. update current_time to be the new_time
+        self.current_time = new_time
+
+
+    def is_completely_done(self):
+        '''
+        Are we completely done with everything, such that
+        all job_receiver's jobs are all processed?
+        '''
+
+        return self.job_receiver.all_jobs_received() and len(self.remaining_jobs) <= 0
+
+    
+    def get_average_waiting_time_for_completed_jobs(self):
+        '''
+        Get the average waiting time for all completed jobs.
+        '''
+
+        return float(sum([j.waiting_time for j in self.completed_jobs])) / float(len(self.completed_jobs))
+
+    
+    def has_remaining_jobs(self):
+        '''
+        Does this CPU still have remaining jobs to run?
+        '''
+
+        return len(self.remaining_jobs) > 0
+
+
 def FCFS_scheduling(process_list):
     '''
     Scheduling process_list on first come first serve basis.
     '''
 
-    # store the (switching time, proccess_id) pair
-    schedule = []
-    current_time = 0
-    waiting_time = 0
+    cpu = Cpu(process_list)
 
-    for process in process_list:        
-        if current_time < process.arrival_time:
-            current_time = process.arrival_time
+    while not cpu.is_completely_done():
+        if not cpu.has_remaining_jobs():
+            cpu.wait_until_new_job_arrives()
 
-        schedule.append((current_time, process.id))
-        waiting_time = waiting_time + (current_time - process.arrival_time)
-        current_time = current_time + process.burst_time
+        cpu.switch_to_job(0)
+        cpu.increment_current_time(cpu.get_current_running_job().remaining_time)
 
-    average_waiting_time = waiting_time/float(len(process_list))
-    return schedule, average_waiting_time
+    return cpu.schedule, cpu.get_average_waiting_time_for_completed_jobs()
 
 
 # input: process_list, time_quantum (Positive Integer)
