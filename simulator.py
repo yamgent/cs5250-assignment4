@@ -143,6 +143,16 @@ class Cpu:
         self.current_running_job_index = NO_JOB
         self.job_receiver = JobReceiver(process_list)
         self.schedule = []
+        self.job_completed_event_callback = None
+
+
+    def set_job_completed_event_callback(self, callback):
+        '''
+        Set the callback function that we should call when a job is completed.
+        This callback should accept a parameter for a job object.
+        '''
+
+        self.job_completed_event_callback = callback
 
 
     def get_current_running_job(self):
@@ -234,6 +244,9 @@ class Cpu:
             if current_running_job.is_done():
                 self.remaining_jobs.remove(current_running_job)
                 self.completed_jobs.append(current_running_job)
+
+                if self.job_completed_event_callback is not None:
+                    self.job_completed_event_callback(current_running_job)
 
                 self.switch_to_job_with_index(NO_JOB)
                 current_running_job = None
