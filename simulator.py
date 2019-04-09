@@ -506,7 +506,7 @@ def main(argv):
         exit()
     
     folder_path = argv[1]
-    run_simulators(argv[1])
+    run_simulators(folder_path)
 
 
 if __name__ == '__main__':
