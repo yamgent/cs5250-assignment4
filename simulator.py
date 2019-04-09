@@ -160,6 +160,10 @@ class Cpu:
         Switch to the new job.
         '''
 
+        # don't bother switching if it is the same job
+        if self.current_running_job_index == new_job:
+            return
+
         self.current_running_job_index = new_job
         if self.current_running_job_index != NO_JOB:
             self.schedule.append((self.current_time, self.get_current_running_job().id))
@@ -278,7 +282,31 @@ def RR_scheduling(process_list, time_quantum):
     Scheduling process_list on round robin policy with time_quantum.
     '''
 
-    return (['To be completed, scheduling process_list on round robin policy with time_quantum.'], 0.0)
+    cpu = Cpu(process_list)
+    
+    while not cpu.is_completely_done():
+        if cpu.get_current_running_job() is None:
+            if not cpu.has_remaining_jobs():
+                cpu.wait_until_new_job_arrives()
+
+            cpu.switch_to_job(0)
+
+        else:
+            current_job_index = cpu.current_running_job_index
+            time_spent_for_current_job = min(time_quantum, cpu.get_current_running_job().remaining_time)
+            job_will_finish = (time_spent_for_current_job == cpu.get_current_running_job().remaining_time)
+
+            cpu.increment_current_time(time_spent_for_current_job)
+
+            if cpu.has_remaining_jobs():
+                next_job_index = (current_job_index + 1) % len(cpu.remaining_jobs)
+                if job_will_finish:
+                    # finished job is removed on the spot, so the next job is the same spot
+                    next_job_index = (current_job_index) % len(cpu.remaining_jobs)
+
+                cpu.switch_to_job(next_job_index)
+
+    return cpu.schedule, cpu.get_average_waiting_time_for_completed_jobs()
 
 
 def SRTF_scheduling(process_list):
