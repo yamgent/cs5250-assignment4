@@ -455,19 +455,26 @@ def run_simulators(folder_path):
     for process in process_list:
         print(process)
 
+    # note: each scheduler reloads the process_list in case it is contaminated
+    # by the previous scheduling algorithm's execution.
+
     print('simulating FCFS ----')
+    process_list = read_input(input_txt_path)
     FCFS_schedule, FCFS_avg_waiting_time = FCFS_scheduling(process_list)
     write_output(folder_path + '/FCFS.txt', FCFS_schedule, FCFS_avg_waiting_time)
 
     print('simulating RR ----')
+    process_list = read_input(input_txt_path)
     RR_schedule, RR_avg_waiting_time = RR_scheduling(process_list, time_quantum = 2)
     write_output(folder_path + '/RR.txt', RR_schedule, RR_avg_waiting_time)
 
     print('simulating SRTF ----')
+    process_list = read_input(input_txt_path)
     SRTF_schedule, SRTF_avg_waiting_time = SRTF_scheduling(process_list)
     write_output(folder_path + '/SRTF.txt', SRTF_schedule, SRTF_avg_waiting_time)
 
     print ('simulating SJF ----')
+    process_list = read_input(input_txt_path)
     SJF_schedule, SJF_avg_waiting_time = SJF_scheduling(process_list, alpha = 0.5)
     write_output(folder_path + '/SJF.txt', SJF_schedule, SJF_avg_waiting_time)
 
