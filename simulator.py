@@ -30,7 +30,7 @@ class Process:
         '''
         
         assert current_time >= self.arrival_time
-        return Job(self.id, self.arrival_time, self.burst_time, current_time - self.arrival_time)
+        return Job(self.id, self.arrival_time, self.burst_time, current_time - self.arrival_time, self.burst_time)
 
 
 class Job:
@@ -38,15 +38,17 @@ class Job:
     Describes a job scheduled for the CPU.
     '''
 
-    def __init__(self, id, arrival_time, remaining_time, waiting_time):
+    def __init__(self, id, arrival_time, remaining_time, waiting_time, burst_time):
         assert arrival_time >= 0
         assert remaining_time >= 0
         assert waiting_time >= 0
+        assert burst_time >= 0
 
         self.id = id
         self.arrival_time = arrival_time
         self.remaining_time = remaining_time
         self.waiting_time = waiting_time
+        self.burst_time = burst_time
 
     
     def add_waiting_time(self, waiting_duration):
@@ -377,7 +379,7 @@ def SJF_scheduling(process_list, alpha):
     '''
     Scheduling SJF without using information from process.burst_time.
     '''
-
+    
     return (['To be completed, scheduling SJF without using information from process.burst_time.'], 0.0)
 
 
