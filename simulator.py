@@ -4,7 +4,7 @@ NO_JOB = -1
 
 class Process:
     '''
-    A process as defined in the input text file.
+    A process, as represented in a particular line inside the input text file.
     '''
 
     def __init__(self, id, arrival_time, burst_time):
@@ -117,6 +117,12 @@ class JobReceiver:
     def receive_new_jobs(self, current_time):
         '''
         Returns the list of new jobs at the current time.
+        
+        Note: There could be multiple jobs 'arriving' if the current_time
+        value skips (i.e. receive_new_jobs() is not religiously called
+        at current_time = 0, 1, 2, 3, ..., instead the number is in
+        increasing order but not called in fixed intervals,
+        such as 1, 5, 11, ...).
         '''
 
         result = []
@@ -188,12 +194,13 @@ class Cpu:
 
         assert new_job_object in self.remaining_jobs
 
+        # find the corresponding job index for the given new_job_object
         for i in range(0, len(self.remaining_jobs)):
             if self.remaining_jobs[i] == new_job_object:
                 self.switch_to_job_with_index(i)
                 return
 
-        assert False  # cannot find the object, something gone VERY wrong
+        assert False  # cannot find the object's index, something gone VERY wrong
 
 
     def wait_until_new_job_arrives(self):
@@ -298,6 +305,7 @@ def FCFS_scheduling(process_list):
         if not cpu.has_remaining_jobs():
             cpu.wait_until_new_job_arrives()
 
+        # always run the first job in the queue to completion (first come, first serve)
         cpu.switch_to_job_with_index(0)
         cpu.increment_current_time(cpu.get_current_running_job().remaining_time)
 
@@ -316,18 +324,21 @@ def RR_scheduling(process_list, time_quantum):
     
     while not cpu.is_completely_done():
         if cpu.get_current_running_job() is None:
+            # cpu is idling, give it some job to do!
             if not cpu.has_remaining_jobs():
                 cpu.wait_until_new_job_arrives()
 
             cpu.switch_to_job_with_index(0)
 
         else:
+            # run the current job within the quantum given (can be earlier if job can finish before the quantum)
             current_job_index = cpu.current_running_job_index
             time_spent_for_current_job = min(time_quantum, cpu.get_current_running_job().remaining_time)
             job_will_finish = (time_spent_for_current_job == cpu.get_current_running_job().remaining_time)
 
             cpu.increment_current_time(time_spent_for_current_job)
 
+            # if there's still other jobs, switch to the next job
             if cpu.has_remaining_jobs():
                 next_job_index = (current_job_index + 1) % len(cpu.remaining_jobs)
                 if job_will_finish:
@@ -358,12 +369,13 @@ def SRTF_scheduling(process_list):
                 smallest_remaining_time_job = j
         cpu.switch_to_job_with_object(smallest_remaining_time_job)
 
-        # determine how long to run it ...
+        # determine how long needed to run it
         time_spent = smallest_remaining_time_job.remaining_time
 
-        # ... if no new job arrives before job completion, then just run to job to completion.
+        # if no new job arrives before job completion, then just run to job to completion.
         # Otherwise, we must only run till the next job arrives, in case the next job
-        # changes the candidate for the shortest remaining time left
+        # preempts our current job (i.e. changes the candidate for the shortest remaining
+        # time left)
         next_job_in_queue = cpu.job_receiver.peek_next_process()
         if next_job_in_queue is not None:
             duration_before_next_job_arrives = next_job_in_queue.arrival_time - cpu.current_time
@@ -405,6 +417,8 @@ def SJF_scheduling(process_list, alpha):
                 best_job_to_run = j
         
         cpu.switch_to_job_with_object(best_job_to_run)
+
+        # no preemption so just run to completion
         cpu.increment_current_time(best_job_to_run.remaining_time)
 
 
@@ -434,7 +448,7 @@ def read_input(input_txt_path):
 
 def write_output(output_txt_path, schedule, avg_waiting_time):
     '''
-    Write the result of a particular simulation.
+    Write the results of a particular simulation.
     '''
 
     with open(output_txt_path, 'w') as f:
@@ -455,7 +469,7 @@ def run_simulators(folder_path):
     for process in process_list:
         print(process)
 
-    # note: each scheduler reloads the process_list in case it is contaminated
+    # note: each scheduler reloads the process_list, in case it is contaminated
     # by the previous scheduling algorithm's execution.
 
     print('simulating FCFS ----')
