@@ -155,9 +155,9 @@ class Cpu:
         return self.remaining_jobs[self.current_running_job_index]
 
 
-    def switch_to_job(self, new_job):
+    def switch_to_job_with_index(self, new_job):
         '''
-        Switch to the new job.
+        Switch to the new job (given its index).
         '''
 
         # don't bother switching if it is the same job
@@ -168,7 +168,7 @@ class Cpu:
         if self.current_running_job_index != NO_JOB:
             self.schedule.append((self.current_time, self.get_current_running_job().id))
 
-    
+
     def wait_until_new_job_arrives(self):
         '''
         Called when there's no job in the CPU, wait until
@@ -220,7 +220,7 @@ class Cpu:
                 self.remaining_jobs.remove(current_running_job)
                 self.completed_jobs.append(current_running_job)
 
-                self.switch_to_job(NO_JOB)
+                self.switch_to_job_with_index(NO_JOB)
                 current_running_job = None
 
         # 4. receive new jobs (if any)
@@ -268,7 +268,7 @@ def FCFS_scheduling(process_list):
         if not cpu.has_remaining_jobs():
             cpu.wait_until_new_job_arrives()
 
-        cpu.switch_to_job(0)
+        cpu.switch_to_job_with_index(0)
         cpu.increment_current_time(cpu.get_current_running_job().remaining_time)
 
     return cpu.schedule, cpu.get_average_waiting_time_for_completed_jobs()
@@ -289,7 +289,7 @@ def RR_scheduling(process_list, time_quantum):
             if not cpu.has_remaining_jobs():
                 cpu.wait_until_new_job_arrives()
 
-            cpu.switch_to_job(0)
+            cpu.switch_to_job_with_index(0)
 
         else:
             current_job_index = cpu.current_running_job_index
@@ -304,7 +304,7 @@ def RR_scheduling(process_list, time_quantum):
                     # finished job is removed on the spot, so the next job is the same spot
                     next_job_index = (current_job_index) % len(cpu.remaining_jobs)
 
-                cpu.switch_to_job(next_job_index)
+                cpu.switch_to_job_with_index(next_job_index)
 
     return cpu.schedule, cpu.get_average_waiting_time_for_completed_jobs()
 
