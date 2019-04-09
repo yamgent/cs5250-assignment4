@@ -169,6 +169,21 @@ class Cpu:
             self.schedule.append((self.current_time, self.get_current_running_job().id))
 
 
+    def switch_to_job_with_object(self, new_job_object):
+        '''
+        Switch to the new job (given the particular object representation of the job).
+        '''
+
+        assert new_job_object in self.remaining_jobs
+
+        for i in range(0, len(self.remaining_jobs)):
+            if self.remaining_jobs[i] == new_job_object:
+                self.switch_to_job_with_index(i)
+                return
+
+        assert False  # cannot find the object, something gone VERY wrong
+
+
     def wait_until_new_job_arrives(self):
         '''
         Called when there's no job in the CPU, wait until
@@ -314,7 +329,35 @@ def SRTF_scheduling(process_list):
     Scheduling process_list on SRTF, using process.burst_time to calculate the remaining time of the current process.
     '''
 
-    return (['To be completed, scheduling process_list on SRTF, using process.burst_time to calculate the remaining time of the current process.'], 0.0)
+    cpu = Cpu(process_list)
+
+    while not cpu.is_completely_done():
+        if not cpu.has_remaining_jobs():
+            cpu.wait_until_new_job_arrives()
+            cpu.switch_to_job_with_index(0)
+        
+        # find the smallest remaining time job and switch to it
+        smallest_remaining_time_job = cpu.remaining_jobs[0]
+        for j in cpu.remaining_jobs:
+            if j.remaining_time < smallest_remaining_time_job.remaining_time:
+                smallest_remaining_time_job = j
+        cpu.switch_to_job_with_object(smallest_remaining_time_job)
+
+        # determine how long to run it ...
+        time_spent = smallest_remaining_time_job.remaining_time
+
+        # ... if no new job arrives before job completion, then just run to job to completion.
+        # Otherwise, we must only run till the next job arrives, in case the next job
+        # changes the candidate for the shortest remaining time left
+        next_job_in_queue = cpu.job_receiver.peek_next_process()
+        if next_job_in_queue is not None:
+            duration_before_next_job_arrives = next_job_in_queue.arrival_time - cpu.current_time
+            time_spent = min(time_spent, duration_before_next_job_arrives)
+
+        # now actually run it
+        cpu.increment_current_time(time_spent)
+
+    return cpu.schedule, cpu.get_average_waiting_time_for_completed_jobs()
 
 
 def SJF_scheduling(process_list, alpha):
