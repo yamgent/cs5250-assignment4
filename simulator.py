@@ -380,7 +380,35 @@ def SJF_scheduling(process_list, alpha):
     Scheduling SJF without using information from process.burst_time.
     '''
     
-    return (['To be completed, scheduling SJF without using information from process.burst_time.'], 0.0)
+    cpu = Cpu(process_list)
+    
+    # set up prediction table
+    prediction = { }
+    all_process_ids = [p.id for p in process_list]
+    for i in all_process_ids:
+        prediction[i] = 5
+
+    # hook up a prediction update function
+    def update_prediction(completed_job):
+        prediction[completed_job.id] = (alpha * completed_job.burst_time) + ((1 - alpha) * prediction[completed_job.id])
+    cpu.set_job_completed_event_callback(update_prediction)
+
+    while not cpu.is_completely_done():
+        if not cpu.has_remaining_jobs():
+            cpu.wait_until_new_job_arrives()
+            cpu.switch_to_job_with_index(0)
+
+        # find the best job to run based on predictions
+        best_job_to_run = cpu.remaining_jobs[0]
+        for j in cpu.remaining_jobs:
+            if prediction[j.id] < prediction[best_job_to_run.id]:
+                best_job_to_run = j
+        
+        cpu.switch_to_job_with_object(best_job_to_run)
+        cpu.increment_current_time(best_job_to_run.remaining_time)
+
+
+    return cpu.schedule, cpu.get_average_waiting_time_for_completed_jobs()
 
 
 def read_input(input_txt_path):
