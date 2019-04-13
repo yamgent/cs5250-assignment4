@@ -492,6 +492,19 @@ def run_simulators(folder_path):
     SJF_schedule, SJF_avg_waiting_time = SJF_scheduling(process_list, alpha = 0.5)
     write_output(folder_path + '/SJF.txt', SJF_schedule, SJF_avg_waiting_time)
 
+    # for task 2, to experiment with time_quantum and alpha
+    # try all time quantum
+    for q in range(1, 21):
+        process_list = read_input(input_txt_path)
+        q_schedule, q_avg_waiting_time = RR_scheduling(process_list, time_quantum = q)
+        write_output(folder_path + ('/extra_RR_%02d.txt'%(q)), q_schedule, q_avg_waiting_time)
+    
+    # try all possible alpha
+    for a in [x * 0.05 for x in range(0, 21)]:
+        process_list = read_input(input_txt_path)
+        a_schedule, a_avg_waiting_time = SJF_scheduling(process_list, alpha = a)
+        write_output(folder_path + ('/extra_SJF_%.2f.txt'%(a)), a_schedule, a_avg_waiting_time)
+
 
 def main(argv):
     '''
